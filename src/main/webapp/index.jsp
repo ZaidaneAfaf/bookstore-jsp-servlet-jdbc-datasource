@@ -3,6 +3,14 @@
 
 <%@ page import="java.util.List" %>
 <%@ page import="org.example.Book" %>
+<%
+    // Si books est null, rediriger vers le servlet
+    List<Book> books = (List<Book>) request.getAttribute("books");
+    if (books == null) {
+        response.sendRedirect(request.getContextPath() + "/books");
+        return;
+    }
+%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -20,7 +28,6 @@
             <th>Actions</th>
         </tr>
         <%
-            List<Book> books = (List<Book>) request.getAttribute("books");
             for (Book book : books) {
         %>
         <tr>
@@ -28,12 +35,12 @@
             <td><%= book.getTitle() %></td>
             <td><%= book.getAuthor() %></td>
             <td>
-                <form action="books" method="POST">
+                <form action="books" method="POST" style="display:inline;">
                     <input type="hidden" name="id" value="<%= book.getId() %>">
                     <input type="hidden" name="action" value="edit">
                     <input type="submit" value="Edit">
                 </form>
-                <form action="books" method="POST">
+                <form action="books" method="POST" style="display:inline;">
                     <input type="hidden" name="id" value="<%= book.getId() %>">
                     <input type="hidden" name="action" value="delete">
                     <input type="submit" value="Delete">
