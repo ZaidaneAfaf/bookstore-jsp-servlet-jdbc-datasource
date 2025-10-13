@@ -3,6 +3,7 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
+    container_name: bookstore-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: bookstore
@@ -12,17 +13,35 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    networks:
+      - bookstore-network
 
   app:
     build: .
+    container_name: bookstore-app
     ports:
       - "8085:8080"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/bookstore
+      DB_URL: jdbc:mysql://mysql:3306/bookstore?allowPublicKeyRetrieval=true&useSSL=false
       DB_USER: bookstore_user
       DB_PASSWORD: password
+    networks:
+      - bookstore-network
+    restart: on-failure
 
 volumes:
   mysql_data:
+
+networks:
+  bookstore-network:
+    driver: bridge
