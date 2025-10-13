@@ -57,7 +57,17 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    echo 'SonarQube analysis will be configured in next step'
+                    withSonarQubeEnv('sonarqube') {
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=ZaidaneAfaf_bookstore-jsp-servlet-jdbc-datasource -Dsonar.organization=zaidaneafaf'
+                    }
+                }
+            }
+        }
+        
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
