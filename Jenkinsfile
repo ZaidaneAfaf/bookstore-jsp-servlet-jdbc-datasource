@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     tools {
-        maven 'M3'  // Maven doit être configuré dans Jenkins
+        maven 'M3'
     }
     
     stages {
@@ -16,13 +16,13 @@ pipeline {
         
         stage('Compile') {
             steps {
-                sh 'mvn clean compile'
+                bat 'mvn clean compile'
             }
         }
         
         stage('Unit Tests') {
             steps {
-                sh 'mvn test'
+                bat 'mvn test'
             }
             post {
                 always {
@@ -33,7 +33,7 @@ pipeline {
         
         stage('Package') {
             steps {
-                sh 'mvn package -DskipTests'
+                bat 'mvn package -DskipTests'
             }
         }
         
