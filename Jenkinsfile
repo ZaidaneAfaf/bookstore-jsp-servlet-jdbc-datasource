@@ -73,12 +73,9 @@ pipeline {
         success {
             echo 'Build successful! ✅'
             
-            // Affiche le chemin de l'artefact généré
+            // Vérification simple sans findFiles
             script {
-                def files = findFiles(glob: 'target/*.war')
-                if (files) {
-                    echo "Application packaged: ${files[0].name}"
-                }
+                bat 'if exist "target\\*.war" (echo Application packaged successfully) else (echo No WAR file found)'
             }
         }
         failure {
