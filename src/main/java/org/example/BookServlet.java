@@ -20,8 +20,6 @@ public class BookServlet extends HttpServlet {
         dataSource = MyDataSourceFactory.getDataSource();
     }
 
-    // ✅ CORRECTION 1 : Ajout de @Override
-    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         // Incrémenter le compteur de requêtes
@@ -36,8 +34,6 @@ public class BookServlet extends HttpServlet {
         }
     }
 
-    // ✅ CORRECTION 2 : Ajout de @Override
-    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         // Incrémenter le compteur de requêtes
