@@ -35,10 +35,15 @@ public class BookServlet extends HttpServlet {
         
         String action = request.getParameter("action");
         
-        if (action != null && action.equals("edit")) {
-            showEditForm(request, response);
-        } else {
-            listBooks(request, response);
+        try {
+            if (action != null && action.equals("edit")) {
+                showEditForm(request, response);
+            } else {
+                listBooks(request, response);
+            }
+        } catch (ServletException | IOException e) {
+            LOGGER.log(Level.SEVERE, "Error processing GET request", e);
+            throw e;
         }
     }
 
@@ -48,23 +53,29 @@ public class BookServlet extends HttpServlet {
         MetricsServlet.getRequestCounter().increment();
         
         String action = request.getParameter("action");
-        if (action != null) {
-            switch (action) {
-                case "add":
-                    addBook(request, response);
-                    break;
-                case "update":
-                    updateBook(request, response);
-                    break;
-                case "delete":
-                    deleteBook(request, response);
-                    break;
-                default:
-                    listBooks(request, response);
-                    break;
+        
+        try {
+            if (action != null) {
+                switch (action) {
+                    case "add":
+                        addBook(request, response);
+                        break;
+                    case "update":
+                        updateBook(request, response);
+                        break;
+                    case "delete":
+                        deleteBook(request, response);
+                        break;
+                    default:
+                        listBooks(request, response);
+                        break;
+                }
+            } else {
+                listBooks(request, response);
             }
-        } else {
-            listBooks(request, response);
+        } catch (ServletException | IOException e) {
+            LOGGER.log(Level.SEVERE, "Error processing POST request", e);
+            throw e;
         }
     }
 
@@ -84,7 +95,7 @@ public class BookServlet extends HttpServlet {
                 books.add(book);
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Database error while listing books", e);
+            LOGGER.log(Level.SEVERE, () -> "Database error while listing books: " + e.getMessage());
             throw new ServletException("Unable to retrieve books from database", e);
         }
         request.setAttribute("books", books);
@@ -110,7 +121,7 @@ public class BookServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Database error while retrieving book with id: " + id, e);
+            LOGGER.log(Level.SEVERE, () -> "Database error while retrieving book with id: " + id);
             throw new ServletException("Unable to retrieve book from database", e);
         }
         
@@ -133,7 +144,7 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookAddedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Database error while adding book: " + title, e);
+            LOGGER.log(Level.SEVERE, () -> "Database error while adding book: " + title);
             throw new ServletException("Unable to add book to database", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
@@ -156,7 +167,7 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookUpdatedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Database error while updating book with id: " + id, e);
+            LOGGER.log(Level.SEVERE, () -> "Database error while updating book with id: " + id);
             throw new ServletException("Unable to update book in database", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
@@ -175,7 +186,7 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookDeletedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Database error while deleting book with id: " + id, e);
+            LOGGER.log(Level.SEVERE, () -> "Database error while deleting book with id: " + id);
             throw new ServletException("Unable to delete book from database", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
