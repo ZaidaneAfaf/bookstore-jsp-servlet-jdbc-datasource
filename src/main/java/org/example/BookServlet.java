@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class BookServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
@@ -16,6 +17,7 @@ public class BookServlet extends HttpServlet {
     private static final String COLUMN_TITLE = "title";
     private static final String COLUMN_AUTHOR = "author";
     private static final String BOOKS_PATH = "/books";
+    private static final Logger LOGGER = Logger.getLogger(BookServlet.class.getName());
     
     private DataSource dataSource;
 
@@ -28,42 +30,60 @@ public class BookServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Incrémenter le compteur de requêtes
         MetricsServlet.getRequestCounter().increment();
         
         String action = request.getParameter("action");
         
         if (action != null && action.equals("edit")) {
-            showEditForm(request, response);
+            try {
+                showEditForm(request, response);
+            } catch (ServletException | IOException e) {
+                LOGGER.severe("Error in showEditForm: " + e.getMessage());
+                throw e;
+            }
         } else {
-            listBooks(request, response);
+            try {
+                listBooks(request, response);
+            } catch (ServletException | IOException e) {
+                LOGGER.severe("Error in listBooks: " + e.getMessage());
+                throw e;
+            }
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Incrémenter le compteur de requêtes
         MetricsServlet.getRequestCounter().increment();
         
         String action = request.getParameter("action");
         if (action != null) {
-            switch (action) {
-                case "add":
-                    addBook(request, response);
-                    break;
-                case "update":
-                    updateBook(request, response);
-                    break;
-                case "delete":
-                    deleteBook(request, response);
-                    break;
-                default:
-                    listBooks(request, response);
-                    break;
+            try {
+                switch (action) {
+                    case "add":
+                        addBook(request, response);
+                        break;
+                    case "update":
+                        updateBook(request, response);
+                        break;
+                    case "delete":
+                        deleteBook(request, response);
+                        break;
+                    default:
+                        listBooks(request, response);
+                        break;
+                }
+            } catch (IOException | ServletException e) {
+                LOGGER.severe("Error in doPost: " + e.getMessage());
+                throw e;
             }
         } else {
-            listBooks(request, response);
+            try {
+                listBooks(request, response);
+            } catch (ServletException | IOException e) {
+                LOGGER.severe("Error in listBooks: " + e.getMessage());
+                throw e;
+            }
         }
     }
 
@@ -83,7 +103,7 @@ public class BookServlet extends HttpServlet {
                 books.add(book);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.severe("Database error in listBooks: " + e.getMessage());
             throw new ServletException("Database error", e);
         }
         request.setAttribute("books", books);
@@ -109,7 +129,7 @@ public class BookServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.severe("Database error in showEditForm: " + e.getMessage());
             throw new ServletException("Database error", e);
         }
         
@@ -130,10 +150,9 @@ public class BookServlet extends HttpServlet {
             statement.setString(2, author);
             statement.executeUpdate();
             
-            // Incrémenter le compteur
             MetricsServlet.getBookAddedCounter().increment();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.severe("Error adding book: " + e.getMessage());
             throw new IOException("Error adding book", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
@@ -154,10 +173,9 @@ public class BookServlet extends HttpServlet {
             statement.setLong(3, id);
             statement.executeUpdate();
             
-            // Incrémenter le compteur
             MetricsServlet.getBookUpdatedCounter().increment();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.severe("Error updating book: " + e.getMessage());
             throw new IOException("Error updating book", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
@@ -174,10 +192,9 @@ public class BookServlet extends HttpServlet {
             statement.setLong(1, id);
             statement.executeUpdate();
             
-            // Incrémenter le compteur
             MetricsServlet.getBookDeletedCounter().increment();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.severe("Error deleting book: " + e.getMessage());
             throw new IOException("Error deleting book", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
