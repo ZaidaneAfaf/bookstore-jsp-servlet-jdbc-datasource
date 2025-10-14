@@ -13,8 +13,8 @@ public class BookTest {
         book.setTitle("Test Book");
         book.setAuthor("Test Author");
         
-        // CORRECTION : Supprimer .longValue() et utiliser Long pour les deux
-        assertEquals("ID should be 1", Long.valueOf(1L), book.getId());
+        // CORRECTION : Utiliser longValue() sans message
+        assertEquals(1L, book.getId().longValue());
         assertEquals("Test Book", book.getTitle());
         assertEquals("Test Author", book.getAuthor());
     }
@@ -46,7 +46,7 @@ public class BookTest {
         Book book = new Book();
         book.setId(100L);
         assertNotNull(book.getId());
-        // CORRECTION : Supprimer .longValue() et utiliser Long pour les deux
-        assertEquals("ID should be 100", Long.valueOf(100L), book.getId());
+        // CORRECTION : Utiliser longValue() sans message
+        assertEquals(100L, book.getId().longValue());
     }
 }
