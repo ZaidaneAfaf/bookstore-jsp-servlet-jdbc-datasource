@@ -20,8 +20,13 @@ public class BookServlet extends HttpServlet {
         dataSource = MyDataSourceFactory.getDataSource();
     }
 
+    // ✅ CORRECTION 1 : Ajout de @Override
+    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Incrémenter le compteur de requêtes
+        MetricsServlet.requestCounter.increment();
+        
         String action = request.getParameter("action");
         
         if (action != null && action.equals("edit")) {
@@ -31,8 +36,13 @@ public class BookServlet extends HttpServlet {
         }
     }
 
+    // ✅ CORRECTION 2 : Ajout de @Override
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Incrémenter le compteur de requêtes
+        MetricsServlet.requestCounter.increment();
+        
         String action = request.getParameter("action");
         if (action != null) {
             switch (action) {
@@ -114,6 +124,9 @@ public class BookServlet extends HttpServlet {
             statement.setString(1, title);
             statement.setString(2, author);
             statement.executeUpdate();
+            
+            // Incrémenter le compteur
+            MetricsServlet.bookAddedCounter.increment();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -134,6 +147,9 @@ public class BookServlet extends HttpServlet {
             statement.setString(2, author);
             statement.setLong(3, id);
             statement.executeUpdate();
+            
+            // Incrémenter le compteur
+            MetricsServlet.bookUpdatedCounter.increment();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -149,6 +165,9 @@ public class BookServlet extends HttpServlet {
             
             statement.setLong(1, id);
             statement.executeUpdate();
+            
+            // Incrémenter le compteur
+            MetricsServlet.bookDeletedCounter.increment();
         } catch (SQLException e) {
             e.printStackTrace();
         }
