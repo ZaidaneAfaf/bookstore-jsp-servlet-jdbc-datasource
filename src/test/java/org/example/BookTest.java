@@ -13,7 +13,7 @@ public class BookTest {
         book.setTitle("Test Book");
         book.setAuthor("Test Author");
         
-        assertEquals(Long.valueOf(1L), book.getId());
+        assertEquals("ID should be 1", 1L, book.getId().longValue());
         assertEquals("Test Book", book.getTitle());
         assertEquals("Test Author", book.getAuthor());
     }
@@ -45,6 +45,6 @@ public class BookTest {
         Book book = new Book();
         book.setId(100L);
         assertNotNull(book.getId());
-        assertEquals(Long.valueOf(100L), book.getId());
+        assertEquals("ID should be 100", 100L, book.getId().longValue());
     }
 }
