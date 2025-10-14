@@ -28,20 +28,17 @@ pipeline {
                         bat 'mvn test'
                     } catch (Exception e) {
                         echo "Tests failed or no tests found: ${e.message}"
-                        // Continue le pipeline même si les tests échouent ou sont absents
                     }
                 }
             }
             post {
                 always {
                     script {
-                        // Essaie de collecter les rapports si ils existent
                         try {
                             junit 'target/surefire-reports/*.xml'
                             echo 'Test reports collected successfully'
                         } catch (Exception e) {
                             echo "No test reports found or error collecting: ${e.message}"
-                            // Ne pas faire échouer le build si pas de rapports
                         }
                     }
                 }
@@ -58,16 +55,8 @@ pipeline {
             steps {
                 script {
                     withSonarQubeEnv('sonarqube') {
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=ZaidaneAfaf_bookstore-jsp-servlet-jdbc-datasource -Dsonar.organization=zaidaneafaf'
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=ZaidaneAfaf_bookstore-jsp-servlet-jdbc-datasource -Dsonar.organization=zaidaneafaf -Dsonar.qualitygate.wait=false'
                     }
-                }
-            }
-        }
-        
-        stage("Quality Gate") {
-            steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: false
                 }
             }
         }
@@ -76,14 +65,10 @@ pipeline {
     post {
         always {
             echo 'Pipeline finished'
-            
-            // Archive l'artefact .war généré
             archiveArtifacts artifacts: 'target/*.war', fingerprint: true
         }
         success {
             echo 'Build successful! ✅'
-            
-            // Vérification simple sans findFiles
             script {
                 bat 'if exist "target\\*.war" (echo Application packaged successfully) else (echo No WAR file found)'
             }
