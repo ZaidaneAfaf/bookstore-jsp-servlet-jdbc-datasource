@@ -17,7 +17,7 @@ public class MetricsServlet extends HttpServlet {
     private static final PrometheusMeterRegistry prometheusRegistry = 
         new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         
-    // Compteurs - maintenant final et privés avec accesseurs
+    // Compteurs - maintenant privés avec accesseurs
     private static Counter requestCounter;
     private static Counter bookAddedCounter;
     private static Counter bookUpdatedCounter;
@@ -43,7 +43,10 @@ public class MetricsServlet extends HttpServlet {
     @Override
     public void init() throws ServletException {
         super.init();
-        
+        initializeMetrics();
+    }
+    
+    private static synchronized void initializeMetrics() {
         // Initialiser les compteurs
         requestCounter = Counter.builder("http_requests_total")
             .description("Total HTTP requests")

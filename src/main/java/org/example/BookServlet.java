@@ -33,14 +33,10 @@ public class BookServlet extends HttpServlet {
         
         String action = request.getParameter("action");
         
-        try {
-            if (action != null && action.equals("edit")) {
-                showEditForm(request, response);
-            } else {
-                listBooks(request, response);
-            }
-        } catch (ServletException | IOException e) {
-            throw new ServletException("Error processing GET request", e);
+        if (action != null && action.equals("edit")) {
+            showEditForm(request, response);
+        } else {
+            listBooks(request, response);
         }
     }
 
@@ -51,27 +47,23 @@ public class BookServlet extends HttpServlet {
         MetricsServlet.getRequestCounter().increment();
         
         String action = request.getParameter("action");
-        try {
-            if (action != null) {
-                switch (action) {
-                    case "add":
-                        addBook(request, response);
-                        break;
-                    case "update":
-                        updateBook(request, response);
-                        break;
-                    case "delete":
-                        deleteBook(request, response);
-                        break;
-                    default:
-                        listBooks(request, response);
-                        break;
-                }
-            } else {
-                listBooks(request, response);
+        if (action != null) {
+            switch (action) {
+                case "add":
+                    addBook(request, response);
+                    break;
+                case "update":
+                    updateBook(request, response);
+                    break;
+                case "delete":
+                    deleteBook(request, response);
+                    break;
+                default:
+                    listBooks(request, response);
+                    break;
             }
-        } catch (ServletException | IOException e) {
-            throw new ServletException("Error processing POST request", e);
+        } else {
+            listBooks(request, response);
         }
     }
 
