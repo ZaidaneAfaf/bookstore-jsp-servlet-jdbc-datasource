@@ -13,15 +13,33 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class MetricsServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
     private static final PrometheusMeterRegistry prometheusRegistry = 
         new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+        
+    // Compteurs - maintenant final et privés avec accesseurs
+    private static Counter requestCounter;
+    private static Counter bookAddedCounter;
+    private static Counter bookUpdatedCounter;
+    private static Counter bookDeletedCounter;
     
-    // Compteurs
-    public static Counter requestCounter;
-    public static Counter bookAddedCounter;
-    public static Counter bookUpdatedCounter;
-    public static Counter bookDeletedCounter;
+    // Accesseurs publics pour les compteurs
+    public static Counter getRequestCounter() {
+        return requestCounter;
+    }
     
+    public static Counter getBookAddedCounter() {
+        return bookAddedCounter;
+    }
+    
+    public static Counter getBookUpdatedCounter() {
+        return bookUpdatedCounter;
+    }
+    
+    public static Counter getBookDeletedCounter() {
+        return bookDeletedCounter;
+    }
+        
     @Override
     public void init() throws ServletException {
         super.init();
@@ -31,34 +49,38 @@ public class MetricsServlet extends HttpServlet {
             .description("Total HTTP requests")
             .tag("application", "bookstore")
             .register(prometheusRegistry);
-        
+            
         bookAddedCounter = Counter.builder("books_added_total")
             .description("Total books added")
             .register(prometheusRegistry);
-        
+            
         bookUpdatedCounter = Counter.builder("books_updated_total")
             .description("Total books updated")
             .register(prometheusRegistry);
-        
+            
         bookDeletedCounter = Counter.builder("books_deleted_total")
             .description("Total books deleted")
             .register(prometheusRegistry);
-        
+            
         // Métrique JVM
         Gauge.builder("jvm_memory_used_bytes", Runtime.getRuntime(),
             runtime -> runtime.totalMemory() - runtime.freeMemory())
             .description("JVM memory used")
             .register(prometheusRegistry);
     }
-    
+        
     public static MeterRegistry getRegistry() {
         return prometheusRegistry;
     }
-    
+        
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/plain; version=0.0.4; charset=utf-8");
-        response.getWriter().write(prometheusRegistry.scrape());
+        try {
+            response.getWriter().write(prometheusRegistry.scrape());
+        } catch (IOException e) {
+            throw new ServletException("Error writing metrics", e);
+        }
     }
 }

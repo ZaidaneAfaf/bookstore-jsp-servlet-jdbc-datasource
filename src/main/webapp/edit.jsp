@@ -10,7 +10,7 @@
     }
 %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <link rel="stylesheet" type="text/css" href="css/style.css">
@@ -23,11 +23,11 @@
         <input type="hidden" name="id" value="<%= book.getId() %>">
         <input type="hidden" name="action" value="update">
         
-        <label>Title:</label>
-        <input type="text" name="title" value="<%= book.getTitle() %>" required>
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" value="<%= book.getTitle() %>" required>
         
-        <label>Author:</label>
-        <input type="text" name="author" value="<%= book.getAuthor() %>" required>
+        <label for="author">Author:</label>
+        <input type="text" id="author" name="author" value="<%= book.getAuthor() %>" required>
         
         <div style="margin-top: 20px;">
             <input type="submit" value="Update Book">
