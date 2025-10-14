@@ -11,8 +11,7 @@
     }
 %>
 <!DOCTYPE html>
-<!-- ✅ CORRECTION 1 : Ajout de lang="fr" -->
-<html lang="fr">
+<html>
 <head>
 <meta charset="UTF-8">
 <link rel="stylesheet" type="text/css" href="css/style.css">
@@ -148,15 +147,13 @@
     <h2>Add New Book</h2>
     <form action="books" method="POST" class="book-form">
         <div class="form-group">
-            <!-- ✅ CORRECTION 2 : Ajout de for="title" dans le label -->
-            <label for="title">Title:</label>
-            <input type="text" id="title" name="title" required placeholder="Enter book title">
+            <label>Title:</label>
+            <input type="text" name="title" required placeholder="Enter book title">
         </div>
         
         <div class="form-group">
-            <!-- ✅ CORRECTION 3 : Ajout de for="author" dans le label -->
-            <label for="author">Author:</label>
-            <input type="text" id="author" name="author" required placeholder="Enter author name">
+            <label>Author:</label>
+            <input type="text" name="author" required placeholder="Enter author name">
         </div>
         
         <input type="hidden" name="action" value="add">
