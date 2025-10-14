@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class BookServlet extends HttpServlet {
@@ -35,19 +36,9 @@ public class BookServlet extends HttpServlet {
         String action = request.getParameter("action");
         
         if (action != null && action.equals("edit")) {
-            try {
-                showEditForm(request, response);
-            } catch (ServletException | IOException e) {
-                LOGGER.severe("Error in showEditForm: " + e.getMessage());
-                throw e;
-            }
+            showEditForm(request, response);
         } else {
-            try {
-                listBooks(request, response);
-            } catch (ServletException | IOException e) {
-                LOGGER.severe("Error in listBooks: " + e.getMessage());
-                throw e;
-            }
+            listBooks(request, response);
         }
     }
 
@@ -58,32 +49,22 @@ public class BookServlet extends HttpServlet {
         
         String action = request.getParameter("action");
         if (action != null) {
-            try {
-                switch (action) {
-                    case "add":
-                        addBook(request, response);
-                        break;
-                    case "update":
-                        updateBook(request, response);
-                        break;
-                    case "delete":
-                        deleteBook(request, response);
-                        break;
-                    default:
-                        listBooks(request, response);
-                        break;
-                }
-            } catch (IOException | ServletException e) {
-                LOGGER.severe("Error in doPost: " + e.getMessage());
-                throw e;
+            switch (action) {
+                case "add":
+                    addBook(request, response);
+                    break;
+                case "update":
+                    updateBook(request, response);
+                    break;
+                case "delete":
+                    deleteBook(request, response);
+                    break;
+                default:
+                    listBooks(request, response);
+                    break;
             }
         } else {
-            try {
-                listBooks(request, response);
-            } catch (ServletException | IOException e) {
-                LOGGER.severe("Error in listBooks: " + e.getMessage());
-                throw e;
-            }
+            listBooks(request, response);
         }
     }
 
@@ -103,8 +84,8 @@ public class BookServlet extends HttpServlet {
                 books.add(book);
             }
         } catch (SQLException e) {
-            LOGGER.severe("Database error in listBooks: " + e.getMessage());
-            throw new ServletException("Database error", e);
+            LOGGER.log(Level.SEVERE, "Database error while listing books", e);
+            throw new ServletException("Unable to retrieve books from database", e);
         }
         request.setAttribute("books", books);
         request.getRequestDispatcher("/index.jsp").forward(request, response);
@@ -129,8 +110,8 @@ public class BookServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.severe("Database error in showEditForm: " + e.getMessage());
-            throw new ServletException("Database error", e);
+            LOGGER.log(Level.SEVERE, "Database error while retrieving book with id: " + id, e);
+            throw new ServletException("Unable to retrieve book from database", e);
         }
         
         request.setAttribute("book", book);
@@ -138,7 +119,7 @@ public class BookServlet extends HttpServlet {
     }
 
     private void addBook(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+            throws IOException, ServletException {
         String title = request.getParameter(COLUMN_TITLE);
         String author = request.getParameter(COLUMN_AUTHOR);
         
@@ -152,14 +133,14 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookAddedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.severe("Error adding book: " + e.getMessage());
-            throw new IOException("Error adding book", e);
+            LOGGER.log(Level.SEVERE, "Database error while adding book: " + title, e);
+            throw new ServletException("Unable to add book to database", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
 
     private void updateBook(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+            throws IOException, ServletException {
         Long id = Long.parseLong(request.getParameter(COLUMN_ID));
         String title = request.getParameter(COLUMN_TITLE);
         String author = request.getParameter(COLUMN_AUTHOR);
@@ -175,14 +156,14 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookUpdatedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.severe("Error updating book: " + e.getMessage());
-            throw new IOException("Error updating book", e);
+            LOGGER.log(Level.SEVERE, "Database error while updating book with id: " + id, e);
+            throw new ServletException("Unable to update book in database", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
 
     private void deleteBook(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+            throws IOException, ServletException {
         Long id = Long.parseLong(request.getParameter(COLUMN_ID));
         
         try (Connection connection = dataSource.getConnection();
@@ -194,8 +175,8 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookDeletedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.severe("Error deleting book: " + e.getMessage());
-            throw new IOException("Error deleting book", e);
+            LOGGER.log(Level.SEVERE, "Database error while deleting book with id: " + id, e);
+            throw new ServletException("Unable to delete book from database", e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }

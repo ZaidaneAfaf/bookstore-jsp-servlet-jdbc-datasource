@@ -1,15 +1,3 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8"%>
-
-<%@ page import="java.util.List" %>
-<%@ page import="org.example.Book" %>
-<%
-    List<Book> books = (List<Book>) request.getAttribute("books");
-    if (books == null) {
-        response.sendRedirect(request.getContextPath() + "/books");
-        return;
-    }
-%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
