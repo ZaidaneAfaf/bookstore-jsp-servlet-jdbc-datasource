@@ -13,7 +13,7 @@ public class BookTest {
         book.setTitle("Test Book");
         book.setAuthor("Test Author");
         
-        // CORRECTION : Utiliser longValue() sans message
+        // CORRECTION : Comparer directement les long primitifs
         assertEquals(1L, book.getId().longValue());
         assertEquals("Test Book", book.getTitle());
         assertEquals("Test Author", book.getAuthor());
@@ -46,7 +46,7 @@ public class BookTest {
         Book book = new Book();
         book.setId(100L);
         assertNotNull(book.getId());
-        // CORRECTION : Utiliser longValue() sans message
+        // CORRECTION : Comparer directement les long primitifs
         assertEquals(100L, book.getId().longValue());
     }
 }
