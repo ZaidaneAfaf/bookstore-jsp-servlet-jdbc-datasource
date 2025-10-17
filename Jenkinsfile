@@ -63,7 +63,8 @@ pipeline {
                             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml ^
                             -Dsonar.java.binaries=target/classes ^
                             -Dsonar.sources=src/main/java ^
-                            -Dsonar.tests=src/test/java
+                            -Dsonar.tests=src/test/java ^
+                            -Dsonar.qualitygate.wait=false
                         '''
                     }
                 }
@@ -73,8 +74,8 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 script {
-                    timeout(time: 1, unit: 'HOURS') {
-                        waitForQualityGate abortPipeline: false
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: false, webhookSecretKey: credentials('sonarqube-token')
                     }
                 }
             }
