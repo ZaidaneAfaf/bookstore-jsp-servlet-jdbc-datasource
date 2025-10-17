@@ -80,13 +80,7 @@ public class MetricsServlet extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/plain; version=0.0.4; charset=utf-8");
         
-        try {
-            String metricsData = prometheusRegistry.scrape();
-            response.getWriter().write(metricsData);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Failed to write Prometheus metrics to response", e);
-            // Relancer l'exception avec le contexte approprié
-            throw new IOException("Failed to write Prometheus metrics", e);
-        }
+        String metricsData = prometheusRegistry.scrape();
+        response.getWriter().write(metricsData);
     }
 }
