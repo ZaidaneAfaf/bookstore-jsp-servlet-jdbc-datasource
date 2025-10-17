@@ -85,8 +85,9 @@ public class BookServlet extends HttpServlet {
                 books.add(book);
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, () -> "Database error while listing books: " + e.getMessage());
-            throw new ServletException("Unable to retrieve books from database", e);
+            String errorMsg = "Database error while listing books: " + e.getMessage();
+            LOGGER.log(Level.SEVERE, errorMsg, e);
+            throw new ServletException(errorMsg, e);
         }
         request.setAttribute("books", books);
         request.getRequestDispatcher("/index.jsp").forward(request, response);
