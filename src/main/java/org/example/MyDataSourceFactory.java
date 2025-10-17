@@ -6,12 +6,8 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class MyDataSourceFactory {
-    
-    private static final Logger LOGGER = Logger.getLogger(MyDataSourceFactory.class.getName());
     
     // Constructeur privé pour empêcher l'instanciation
     private MyDataSourceFactory() {
@@ -50,16 +46,14 @@ public class MyDataSourceFactory {
                 .getResourceAsStream("db.properties")) {
             
             if (input == null) {
-                LOGGER.severe("Unable to find db.properties file");
-                throw new IllegalStateException("Database configuration file not found");
+                throw new IllegalStateException("Database configuration file 'db.properties' not found in classpath");
             }
             
             prop.load(input);
             return prop;
             
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to load database configuration", ex);
-            throw new IllegalStateException("Failed to load database configuration", ex);
+            throw new IllegalStateException("Failed to load database configuration from db.properties", ex);
         }
     }
     
