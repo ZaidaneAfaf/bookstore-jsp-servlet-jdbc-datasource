@@ -29,43 +29,49 @@ public class BookServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         MetricsServlet.getRequestCounter().increment();
         
         String action = request.getParameter("action");
         
-        if (action != null && action.equals("edit")) {
-            showEditForm(request, response);
-        } else {
-            listBooks(request, response);
+        try {
+            if (action != null && action.equals("edit")) {
+                showEditForm(request, response);
+            } else {
+                listBooks(request, response);
+            }
+        } catch (ServletException | IOException e) {
+            handleError(request, response, "Error processing GET request", e);
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
         MetricsServlet.getRequestCounter().increment();
         
         String action = request.getParameter("action");
         
-        if (action != null) {
-            switch (action) {
-                case "add":
-                    addBook(request, response);
-                    break;
-                case "update":
-                    updateBook(request, response);
-                    break;
-                case "delete":
-                    deleteBook(request, response);
-                    break;
-                default:
-                    listBooks(request, response);
-                    break;
+        try {
+            if (action != null) {
+                switch (action) {
+                    case "add":
+                        addBook(request, response);
+                        break;
+                    case "update":
+                        updateBook(request, response);
+                        break;
+                    case "delete":
+                        deleteBook(request, response);
+                        break;
+                    default:
+                        listBooks(request, response);
+                        break;
+                }
+            } else {
+                listBooks(request, response);
             }
-        } else {
-            listBooks(request, response);
+        } catch (ServletException | IOException e) {
+            handleError(request, response, "Error processing POST request", e);
         }
     }
 
@@ -93,7 +99,14 @@ public class BookServlet extends HttpServlet {
 
     private void showEditForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        Long id = Long.parseLong(request.getParameter(COLUMN_ID));
+        Long id = null;
+        try {
+            id = Long.parseLong(request.getParameter(COLUMN_ID));
+        } catch (NumberFormatException e) {
+            handleError(request, response, "Invalid book ID format", e);
+            return;
+        }
+        
         Book book = null;
         
         try (Connection connection = dataSource.getConnection();
@@ -113,6 +126,11 @@ public class BookServlet extends HttpServlet {
             handleDatabaseError("retrieving book with id: " + id, e);
         }
         
+        if (book == null) {
+            handleError(request, response, "Book not found with id: " + id, null);
+            return;
+        }
+        
         request.setAttribute("book", book);
         request.getRequestDispatcher("/edit.jsp").forward(request, response);
     }
@@ -122,12 +140,17 @@ public class BookServlet extends HttpServlet {
         String title = request.getParameter(COLUMN_TITLE);
         String author = request.getParameter(COLUMN_AUTHOR);
         
+        if (title == null || title.trim().isEmpty() || author == null || author.trim().isEmpty()) {
+            handleError(request, response, "Title and author are required", null);
+            return;
+        }
+        
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
                      "INSERT INTO books (title, author) VALUES (?, ?)")) {
             
-            statement.setString(1, title);
-            statement.setString(2, author);
+            statement.setString(1, title.trim());
+            statement.setString(2, author.trim());
             statement.executeUpdate();
             
             MetricsServlet.getBookAddedCounter().increment();
@@ -139,18 +162,35 @@ public class BookServlet extends HttpServlet {
 
     private void updateBook(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        Long id = Long.parseLong(request.getParameter(COLUMN_ID));
+        Long id = null;
+        try {
+            id = Long.parseLong(request.getParameter(COLUMN_ID));
+        } catch (NumberFormatException e) {
+            handleError(request, response, "Invalid book ID format", e);
+            return;
+        }
+        
         String title = request.getParameter(COLUMN_TITLE);
         String author = request.getParameter(COLUMN_AUTHOR);
+        
+        if (title == null || title.trim().isEmpty() || author == null || author.trim().isEmpty()) {
+            handleError(request, response, "Title and author are required", null);
+            return;
+        }
         
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
                      "UPDATE books SET title=?, author=? WHERE id=?")) {
             
-            statement.setString(1, title);
-            statement.setString(2, author);
+            statement.setString(1, title.trim());
+            statement.setString(2, author.trim());
             statement.setLong(3, id);
-            statement.executeUpdate();
+            int updatedRows = statement.executeUpdate();
+            
+            if (updatedRows == 0) {
+                handleError(request, response, "Book not found with id: " + id, null);
+                return;
+            }
             
             MetricsServlet.getBookUpdatedCounter().increment();
         } catch (SQLException e) {
@@ -161,14 +201,25 @@ public class BookServlet extends HttpServlet {
 
     private void deleteBook(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        Long id = Long.parseLong(request.getParameter(COLUMN_ID));
+        Long id = null;
+        try {
+            id = Long.parseLong(request.getParameter(COLUMN_ID));
+        } catch (NumberFormatException e) {
+            handleError(request, response, "Invalid book ID format", e);
+            return;
+        }
         
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
                      "DELETE FROM books WHERE id=?")) {
             
             statement.setLong(1, id);
-            statement.executeUpdate();
+            int deletedRows = statement.executeUpdate();
+            
+            if (deletedRows == 0) {
+                handleError(request, response, "Book not found with id: " + id, null);
+                return;
+            }
             
             MetricsServlet.getBookDeletedCounter().increment();
         } catch (SQLException e) {
@@ -181,5 +232,25 @@ public class BookServlet extends HttpServlet {
         String errorMsg = "Database error while " + operation;
         LOGGER.log(Level.SEVERE, errorMsg, e);
         throw new ServletException(errorMsg, e);
+    }
+    
+    private void handleError(HttpServletRequest request, HttpServletResponse response, String message, Exception e) {
+        try {
+            if (e != null) {
+                LOGGER.log(Level.SEVERE, message, e);
+            } else {
+                LOGGER.log(Level.WARNING, message);
+            }
+            
+            request.setAttribute("errorMessage", message);
+            request.getRequestDispatcher("/error.jsp").forward(request, response);
+        } catch (ServletException | IOException ex) {
+            LOGGER.log(Level.SEVERE, "Error handling error page", ex);
+            try {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+            } catch (IOException ioex) {
+                LOGGER.log(Level.SEVERE, "Error sending error response", ioex);
+            }
+        }
     }
 }
