@@ -23,24 +23,25 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 script {
-                    echo 'Running unit tests...'
-                    try {
-                        bat 'mvn test'
-                    } catch (Exception e) {
-                        echo "Tests failed or no tests found: ${e.message}"
-                    }
+                    echo 'Running unit tests with JaCoCo...'
+                    bat 'mvn test'
                 }
             }
             post {
                 always {
                     script {
-                        try {
-                            junit 'target/surefire-reports/*.xml'
-                            echo 'Test reports collected successfully'
-                        } catch (Exception e) {
-                            echo "No test reports found or error collecting: ${e.message}"
-                        }
+                        junit 'target/surefire-reports/*.xml'
+                        echo 'Test reports collected successfully'
                     }
+                }
+            }
+        }
+        
+        stage('Generate JaCoCo Report') {
+            steps {
+                script {
+                    echo 'Generating JaCoCo coverage report...'
+                    bat 'mvn jacoco:report'
                 }
             }
         }
@@ -55,7 +56,25 @@ pipeline {
             steps {
                 script {
                     withSonarQubeEnv('sonarqube') {
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=ZaidaneAfaf_bookstore-jsp-servlet-jdbc-datasource -Dsonar.organization=zaidaneafaf -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.qualitygate.wait=false'
+                        bat '''
+                            mvn sonar:sonar ^
+                            -Dsonar.projectKey=ZaidaneAfaf_bookstore-jsp-servlet-jdbc-datasource ^
+                            -Dsonar.organization=zaidaneafaf ^
+                            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml ^
+                            -Dsonar.java.binaries=target/classes ^
+                            -Dsonar.sources=src/main/java ^
+                            -Dsonar.tests=src/test/java
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Quality Gate') {
+            steps {
+                script {
+                    timeout(time: 1, unit: 'HOURS') {
+                        waitForQualityGate abortPipeline: false
                     }
                 }
             }
@@ -66,6 +85,18 @@ pipeline {
         always {
             echo 'Pipeline finished'
             archiveArtifacts artifacts: 'target/*.war', fingerprint: true
+            
+            // Publier le rapport JaCoCo dans Jenkins
+            script {
+                publishHTML(target: [
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'target/site/jacoco',
+                    reportFiles: 'index.html',
+                    reportName: 'JaCoCo Coverage Report'
+                ])
+            }
         }
         success {
             echo 'Build successful!'
