@@ -9,10 +9,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +61,36 @@ class MetricsServletTest {
     }
 
     @Test
+    void testDoGetFromIPv6Localhost() throws Exception {
+        servlet.init();
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(writer);
+        when(request.getRemoteAddr()).thenReturn("0:0:0:0:0:0:0:1");
+        
+        servlet.doGet(request, response);
+        
+        verify(response).getWriter();
+        verify(response, never()).sendError(anyInt(), anyString());
+    }
+
+    @Test
+    void testDoGetFromIPv6ShortLocalhost() throws Exception {
+        servlet.init();
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(writer);
+        when(request.getRemoteAddr()).thenReturn("::1");
+        
+        servlet.doGet(request, response);
+        
+        verify(response).getWriter();
+        verify(response, never()).sendError(anyInt(), anyString());
+    }
+
+    @Test
     void testDoGetUnauthorized() throws Exception {
         servlet.init();
         
@@ -87,6 +119,36 @@ class MetricsServletTest {
         
         verify(response).setContentType("text/plain; version=0.0.4; charset=utf-8");
         verify(response).getWriter();
+        verify(response, never()).sendError(anyInt(), anyString());
+    }
+
+    @Test
+    void testDoGetWithWriteException() throws Exception {
+        servlet.init();
+        
+        PrintWriter writer = mock(PrintWriter.class);
+        when(response.getWriter()).thenReturn(writer);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+        doThrow(new IOException("Write error")).when(writer).write(anyString());
+        
+        servlet.doGet(request, response);
+        
+        verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), anyString());
+    }
+
+    @Test
+    void testDoGetWithSendErrorException() throws Exception {
+        servlet.init();
+        
+        when(request.getRemoteAddr()).thenReturn("192.168.1.100");
+        when(request.getHeader("Authorization")).thenReturn(null);
+        when(request.isUserInRole("METRICS_READER")).thenReturn(false);
+        doThrow(new IOException("Send error")).when(response).sendError(anyInt(), anyString());
+        
+        // Ne devrait pas lancer d'exception même si sendError échoue
+        servlet.doGet(request, response);
+        
+        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
     }
 
     @Test
@@ -125,17 +187,14 @@ class MetricsServletTest {
     }
 
     @Test
-    void testDoGetFromIPv6Localhost() throws Exception {
+    void testDoGetGeneralException() throws Exception {
         servlet.init();
         
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter writer = new PrintWriter(stringWriter);
-        when(response.getWriter()).thenReturn(writer);
-        when(request.getRemoteAddr()).thenReturn("0:0:0:0:0:0:0:1");
+        when(request.getRemoteAddr()).thenThrow(new RuntimeException("Unexpected error"));
         
+        // Ne devrait pas lancer d'exception
         servlet.doGet(request, response);
         
-        verify(response).getWriter();
-        verify(response, never()).sendError(anyInt(), anyString());
+        verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), anyString());
     }
 }

@@ -77,36 +77,65 @@ public class MetricsServlet extends HttpServlet {
             
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException {
         try {
             // Sécurité : Vérifier l'authentification/autorisation
             if (!isAuthorized(request)) {
-                try {
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
-                } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "Failed to send error response for unauthorized access", e);
-                }
+                handleUnauthorizedAccess(response);
                 return;
             }
             
             // Sécurité : Headers de sécurité
-            response.setHeader("X-Content-Type-Options", "nosniff");
-            response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+            setSecurityHeaders(response);
             response.setContentType("text/plain; version=0.0.4; charset=utf-8");
             
             String metricsData = prometheusRegistry.scrape();
-            try {
-                response.getWriter().write(metricsData);
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Failed to write metrics response", e);
-                throw new IOException("Failed to write metrics response", e);
-            }
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "IOException in doGet", e);
-            throw e;
+            writeMetricsResponse(response, metricsData);
+            
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Unexpected error in doGet", e);
-            throw new ServletException("Unexpected error while retrieving metrics", e);
+            try {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                    "Unexpected error while retrieving metrics");
+            } catch (IOException ioe) {
+                LOGGER.log(Level.SEVERE, "Failed to send error response", ioe);
+            }
+        }
+    }
+    
+    /**
+     * Définit les headers de sécurité pour la réponse.
+     */
+    private void setSecurityHeaders(HttpServletResponse response) {
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    }
+    
+    /**
+     * Gère l'accès non autorisé.
+     */
+    private void handleUnauthorizedAccess(HttpServletResponse response) {
+        try {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Failed to send access denied response", e);
+        }
+    }
+    
+    /**
+     * Écrit les données de métriques dans la réponse.
+     */
+    private void writeMetricsResponse(HttpServletResponse response, String metricsData) {
+        try {
+            response.getWriter().write(metricsData);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Failed to write metrics response", e);
+            try {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                    "Failed to write metrics");
+            } catch (IOException ioe) {
+                LOGGER.log(Level.SEVERE, "Failed to send error response after write failure", ioe);
+            }
         }
     }
     
@@ -123,7 +152,7 @@ public class MetricsServlet extends HttpServlet {
         
         // Option 2 : Vérifier que la requête vient de localhost
         String remoteAddr = request.getRemoteAddr();
-        if ("127.0.0.1".equals(remoteAddr) || "0:0:0:0:0:0:0:1".equals(remoteAddr)) {
+        if (isLocalhostAddress(remoteAddr)) {
             return true;
         }
         
@@ -132,11 +161,23 @@ public class MetricsServlet extends HttpServlet {
     }
     
     /**
+     * Vérifie si l'adresse est localhost.
+     */
+    private boolean isLocalhostAddress(String remoteAddr) {
+        return "127.0.0.1".equals(remoteAddr) || "0:0:0:0:0:0:0:1".equals(remoteAddr) 
+            || "::1".equals(remoteAddr);
+    }
+    
+    /**
      * Valide le token d'authentification.
      * À implémenter selon votre système d'authentification.
      */
     private boolean isValidToken(String token) {
-        // TODO: Implémenter la validation du token
+        // Éviter les null pointer exceptions
+        if (token == null || token.isEmpty()) {
+            return false;
+        }
+        
         // Exemple : vérifier contre une variable d'environnement
         String expectedToken = System.getenv("METRICS_ACCESS_TOKEN");
         return expectedToken != null && expectedToken.equals(token);
