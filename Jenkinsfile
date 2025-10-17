@@ -85,18 +85,6 @@ pipeline {
         always {
             echo 'Pipeline finished'
             archiveArtifacts artifacts: 'target/*.war', fingerprint: true
-            
-            // Publier le rapport JaCoCo dans Jenkins
-            script {
-                publishHTML(target: [
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'target/site/jacoco',
-                    reportFiles: 'index.html',
-                    reportName: 'JaCoCo Coverage Report'
-                ])
-            }
         }
         success {
             echo 'Build successful!'

@@ -1,4 +1,5 @@
-import org.example.MetricsServlet;
+package org.example;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +50,9 @@ class MetricsServletTest {
     @Test
     void testDoGet() throws Exception {
         servlet.init();
-        servlet.doGet(request, response);
+        when(request.getMethod()).thenReturn("GET");
+        
+        servlet.service(request, response);
         
         verify(response).setContentType("text/plain; version=0.0.4; charset=utf-8");
         verify(response).getWriter();

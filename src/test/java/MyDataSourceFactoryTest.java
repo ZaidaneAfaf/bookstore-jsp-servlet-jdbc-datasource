@@ -1,4 +1,4 @@
-import org.example.MyDataSourceFactory;
+package org.example;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
