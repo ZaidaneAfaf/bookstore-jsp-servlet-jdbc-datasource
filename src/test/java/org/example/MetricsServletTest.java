@@ -48,33 +48,45 @@ class MetricsServletTest {
         StringWriter stringWriter = new StringWriter();
         PrintWriter writer = new PrintWriter(stringWriter);
         when(response.getWriter()).thenReturn(writer);
-        when(request.getMethod()).thenReturn("GET");
-        // Simuler une requête depuis localhost
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
         
-        servlet.service(request, response);
+        servlet.doGet(request, response);
         
         verify(response).setContentType("text/plain; version=0.0.4; charset=utf-8");
+        verify(response).setHeader("X-Content-Type-Options", "nosniff");
+        verify(response).setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
         verify(response).getWriter();
-        
-        String output = stringWriter.toString();
-        assertNotNull(output);
-        assertTrue(!output.isEmpty());
     }
 
     @Test
     void testDoGetUnauthorized() throws Exception {
         servlet.init();
         
-        when(request.getMethod()).thenReturn("GET");
-        // Simuler une requête depuis une adresse non autorisée
         when(request.getRemoteAddr()).thenReturn("192.168.1.100");
         when(request.getHeader("Authorization")).thenReturn(null);
         when(request.isUserInRole("METRICS_READER")).thenReturn(false);
         
-        servlet.service(request, response);
+        servlet.doGet(request, response);
         
         verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+        verify(response, never()).getWriter();
+    }
+
+    @Test
+    void testDoGetWithUserRole() throws Exception {
+        servlet.init();
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(writer);
+        when(request.getRemoteAddr()).thenReturn("192.168.1.100");
+        when(request.getHeader("Authorization")).thenReturn(null);
+        when(request.isUserInRole("METRICS_READER")).thenReturn(true);
+        
+        servlet.doGet(request, response);
+        
+        verify(response).setContentType("text/plain; version=0.0.4; charset=utf-8");
+        verify(response).getWriter();
     }
 
     @Test
@@ -95,5 +107,35 @@ class MetricsServletTest {
     void testGetRegistry() throws ServletException {
         servlet.init();
         assertNotNull(MetricsServlet.getRegistry());
+    }
+
+    @Test
+    void testSecurityHeaders() throws Exception {
+        servlet.init();
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(writer);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+        
+        servlet.doGet(request, response);
+        
+        verify(response).setHeader("X-Content-Type-Options", "nosniff");
+        verify(response).setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    }
+
+    @Test
+    void testDoGetFromIPv6Localhost() throws Exception {
+        servlet.init();
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(writer);
+        when(request.getRemoteAddr()).thenReturn("0:0:0:0:0:0:0:1");
+        
+        servlet.doGet(request, response);
+        
+        verify(response).getWriter();
+        verify(response, never()).sendError(anyInt(), anyString());
     }
 }

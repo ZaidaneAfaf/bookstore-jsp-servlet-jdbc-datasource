@@ -11,9 +11,12 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MetricsServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = Logger.getLogger(MetricsServlet.class.getName());
     private static final PrometheusMeterRegistry prometheusRegistry = 
         new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
             
@@ -75,23 +78,35 @@ public class MetricsServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-        // Sécurité : Vérifier l'authentification/autorisation
-        if (!isAuthorized(request)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
-            return;
-        }
-        
         try {
+            // Sécurité : Vérifier l'authentification/autorisation
+            if (!isAuthorized(request)) {
+                try {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+                } catch (IOException e) {
+                    LOGGER.log(Level.SEVERE, "Failed to send error response for unauthorized access", e);
+                }
+                return;
+            }
+            
             // Sécurité : Headers de sécurité
             response.setHeader("X-Content-Type-Options", "nosniff");
             response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
             response.setContentType("text/plain; version=0.0.4; charset=utf-8");
             
             String metricsData = prometheusRegistry.scrape();
-            response.getWriter().write(metricsData);
+            try {
+                response.getWriter().write(metricsData);
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Failed to write metrics response", e);
+                throw new IOException("Failed to write metrics response", e);
+            }
         } catch (IOException e) {
-            throw new IOException("Failed to write metrics response", e);
+            LOGGER.log(Level.SEVERE, "IOException in doGet", e);
+            throw e;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Unexpected error in doGet", e);
+            throw new ServletException("Unexpected error while retrieving metrics", e);
         }
     }
     

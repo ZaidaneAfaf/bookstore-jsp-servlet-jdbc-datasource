@@ -31,41 +31,49 @@ public class BookServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        MetricsServlet.getRequestCounter().increment();
-        
-        String action = request.getParameter("action");
-        
-        if (action != null && action.equals("edit")) {
-            showEditForm(request, response);
-        } else {
-            listBooks(request, response);
+        try {
+            MetricsServlet.getRequestCounter().increment();
+            
+            String action = request.getParameter("action");
+            
+            if (action != null && action.equals("edit")) {
+                showEditForm(request, response);
+            } else {
+                listBooks(request, response);
+            }
+        } catch (ServletException | IOException e) {
+            handleError(response, e, "GET request failed");
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        MetricsServlet.getRequestCounter().increment();
-        
-        String action = request.getParameter("action");
-        
-        if (action != null) {
-            switch (action) {
-                case "add":
-                    addBook(request, response);
-                    break;
-                case "update":
-                    updateBook(request, response);
-                    break;
-                case "delete":
-                    deleteBook(request, response);
-                    break;
-                default:
-                    listBooks(request, response);
-                    break;
+        try {
+            MetricsServlet.getRequestCounter().increment();
+            
+            String action = request.getParameter("action");
+            
+            if (action != null) {
+                switch (action) {
+                    case "add":
+                        addBook(request, response);
+                        break;
+                    case "update":
+                        updateBook(request, response);
+                        break;
+                    case "delete":
+                        deleteBook(request, response);
+                        break;
+                    default:
+                        listBooks(request, response);
+                        break;
+                }
+            } else {
+                listBooks(request, response);
             }
-        } else {
-            listBooks(request, response);
+        } catch (ServletException | IOException e) {
+            handleError(response, e, "POST request failed");
         }
     }
 
@@ -87,34 +95,43 @@ public class BookServlet extends HttpServlet {
         } catch (SQLException e) {
             handleDatabaseError("listing books", e);
         }
-        request.setAttribute("books", books);
-        request.getRequestDispatcher("/index.jsp").forward(request, response);
+        
+        try {
+            request.setAttribute("books", books);
+            request.getRequestDispatcher("/index.jsp").forward(request, response);
+        } catch (ServletException | IOException e) {
+            handleError(response, e, "Failed to forward to index.jsp");
+        }
     }
 
     private void showEditForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        Long id = Long.parseLong(request.getParameter(COLUMN_ID));
-        Book book = null;
-        
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT id, title, author FROM books WHERE id=?")) {
+        try {
+            Long id = Long.parseLong(request.getParameter(COLUMN_ID));
+            Book book = null;
             
-            statement.setLong(1, id);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    book = new Book();
-                    book.setId(resultSet.getLong(COLUMN_ID));
-                    book.setTitle(resultSet.getString(COLUMN_TITLE));
-                    book.setAuthor(resultSet.getString(COLUMN_AUTHOR));
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "SELECT id, title, author FROM books WHERE id=?")) {
+                
+                statement.setLong(1, id);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        book = new Book();
+                        book.setId(resultSet.getLong(COLUMN_ID));
+                        book.setTitle(resultSet.getString(COLUMN_TITLE));
+                        book.setAuthor(resultSet.getString(COLUMN_AUTHOR));
+                    }
                 }
+            } catch (SQLException e) {
+                handleDatabaseError("retrieving book with id: " + id, e);
             }
-        } catch (SQLException e) {
-            handleDatabaseError("retrieving book with id: " + id, e);
+            
+            request.setAttribute("book", book);
+            request.getRequestDispatcher("/edit.jsp").forward(request, response);
+        } catch (ServletException | IOException e) {
+            handleError(response, e, "Failed to forward to edit.jsp");
         }
-        
-        request.setAttribute("book", book);
-        request.getRequestDispatcher("/edit.jsp").forward(request, response);
     }
 
     private void addBook(HttpServletRequest request, HttpServletResponse response)
@@ -134,52 +151,76 @@ public class BookServlet extends HttpServlet {
         } catch (SQLException e) {
             handleDatabaseError("adding book: " + title, e);
         }
-        response.sendRedirect(request.getContextPath() + BOOKS_PATH);
+        
+        try {
+            response.sendRedirect(request.getContextPath() + BOOKS_PATH);
+        } catch (IOException e) {
+            handleError(response, e, "Failed to redirect after adding book");
+        }
     }
 
     private void updateBook(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        Long id = Long.parseLong(request.getParameter(COLUMN_ID));
-        String title = request.getParameter(COLUMN_TITLE);
-        String author = request.getParameter(COLUMN_AUTHOR);
-        
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE books SET title=?, author=? WHERE id=?")) {
+        try {
+            Long id = Long.parseLong(request.getParameter(COLUMN_ID));
+            String title = request.getParameter(COLUMN_TITLE);
+            String author = request.getParameter(COLUMN_AUTHOR);
             
-            statement.setString(1, title);
-            statement.setString(2, author);
-            statement.setLong(3, id);
-            statement.executeUpdate();
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "UPDATE books SET title=?, author=? WHERE id=?")) {
+                
+                statement.setString(1, title);
+                statement.setString(2, author);
+                statement.setLong(3, id);
+                statement.executeUpdate();
+                
+                MetricsServlet.getBookUpdatedCounter().increment();
+            } catch (SQLException e) {
+                handleDatabaseError("updating book with id: " + id, e);
+            }
             
-            MetricsServlet.getBookUpdatedCounter().increment();
-        } catch (SQLException e) {
-            handleDatabaseError("updating book with id: " + id, e);
+            response.sendRedirect(request.getContextPath() + BOOKS_PATH);
+        } catch (IOException e) {
+            handleError(response, e, "Failed to redirect after updating book");
         }
-        response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
 
     private void deleteBook(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        Long id = Long.parseLong(request.getParameter(COLUMN_ID));
-        
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "DELETE FROM books WHERE id=?")) {
+        try {
+            Long id = Long.parseLong(request.getParameter(COLUMN_ID));
             
-            statement.setLong(1, id);
-            statement.executeUpdate();
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "DELETE FROM books WHERE id=?")) {
+                
+                statement.setLong(1, id);
+                statement.executeUpdate();
+                
+                MetricsServlet.getBookDeletedCounter().increment();
+            } catch (SQLException e) {
+                handleDatabaseError("deleting book with id: " + id, e);
+            }
             
-            MetricsServlet.getBookDeletedCounter().increment();
-        } catch (SQLException e) {
-            handleDatabaseError("deleting book with id: " + id, e);
+            response.sendRedirect(request.getContextPath() + BOOKS_PATH);
+        } catch (IOException e) {
+            handleError(response, e, "Failed to redirect after deleting book");
         }
-        response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
     
     private void handleDatabaseError(String operation, SQLException e) throws ServletException {
         String errorMsg = "Database error while " + operation;
         LOGGER.log(Level.SEVERE, errorMsg, e);
         throw new ServletException(errorMsg, e);
+    }
+    
+    private void handleError(HttpServletResponse response, Exception e, String operation) {
+        LOGGER.log(Level.SEVERE, operation, e);
+        try {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, operation);
+        } catch (IOException ioe) {
+            LOGGER.log(Level.SEVERE, "Failed to send error response", ioe);
+        }
     }
 }
