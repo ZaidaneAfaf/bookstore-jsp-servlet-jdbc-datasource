@@ -55,7 +55,7 @@ pipeline {
             steps {
                 script {
                     withSonarQubeEnv('sonarqube') {
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=ZaidaneAfaf_bookstore-jsp-servlet-jdbc-datasource -Dsonar.organization=zaidaneafaf -Dsonar.qualitygate.wait=false'
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=ZaidaneAfaf_bookstore-jsp-servlet-jdbc-datasource -Dsonar.organization=zaidaneafaf -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.qualitygate.wait=false'
                     }
                 }
             }
@@ -68,13 +68,13 @@ pipeline {
             archiveArtifacts artifacts: 'target/*.war', fingerprint: true
         }
         success {
-            echo 'Build successful! ✅'
+            echo 'Build successful!'
             script {
                 bat 'if exist "target\\*.war" (echo Application packaged successfully) else (echo No WAR file found)'
             }
         }
         failure {
-            echo 'Build failed! ❌'
+            echo 'Build failed!'
         }
     }
 }
