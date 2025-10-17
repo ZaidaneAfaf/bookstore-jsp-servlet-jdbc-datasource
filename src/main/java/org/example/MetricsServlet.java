@@ -81,8 +81,9 @@ public class MetricsServlet extends HttpServlet {
         try {
             response.getWriter().write(prometheusRegistry.scrape());
         } catch (IOException e) {
-            LOGGER.severe("Error writing metrics: " + e.getMessage());
-            throw new ServletException("Error writing metrics", e);
+            String errorMsg = "Failed to write Prometheus metrics";
+            LOGGER.severe(errorMsg + ": " + e.getMessage());
+            throw new ServletException(errorMsg, e);
         }
     }
 }

@@ -112,8 +112,9 @@ public class BookServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, () -> "Database error while retrieving book with id: " + id);
-            throw new ServletException("Unable to retrieve book from database", e);
+            String errorMsg = "Database error while retrieving book with id: " + id;
+            LOGGER.log(Level.SEVERE, errorMsg, e);
+            throw new ServletException(errorMsg, e);
         }
         
         request.setAttribute("book", book);
@@ -135,8 +136,9 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookAddedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, () -> "Database error while adding book: " + title);
-            throw new ServletException("Unable to add book to database", e);
+            String errorMsg = "Database error while adding book: " + title;
+            LOGGER.log(Level.SEVERE, errorMsg, e);
+            throw new ServletException(errorMsg, e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
@@ -158,8 +160,9 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookUpdatedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, () -> "Database error while updating book with id: " + id);
-            throw new ServletException("Unable to update book in database", e);
+            String errorMsg = "Database error while updating book with id: " + id;
+            LOGGER.log(Level.SEVERE, errorMsg, e);
+            throw new ServletException(errorMsg, e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
@@ -177,8 +180,9 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookDeletedCounter().increment();
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, () -> "Database error while deleting book with id: " + id);
-            throw new ServletException("Unable to delete book from database", e);
+            String errorMsg = "Database error while deleting book with id: " + id;
+            LOGGER.log(Level.SEVERE, errorMsg, e);
+            throw new ServletException(errorMsg, e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
