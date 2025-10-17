@@ -145,7 +145,6 @@ class MetricsServletTest {
         when(request.isUserInRole("METRICS_READER")).thenReturn(false);
         doThrow(new IOException("Send error")).when(response).sendError(anyInt(), anyString());
         
-        // Ne devrait pas lancer d'exception même si sendError échoue
         servlet.doGet(request, response);
         
         verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
@@ -192,9 +191,50 @@ class MetricsServletTest {
         
         when(request.getRemoteAddr()).thenThrow(new RuntimeException("Unexpected error"));
         
-        // Ne devrait pas lancer d'exception
         servlet.doGet(request, response);
         
         verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), anyString());
+    }
+
+    @Test
+    void testDoGetWithEmptyToken() throws Exception {
+        servlet.init();
+        
+        when(request.getRemoteAddr()).thenReturn("192.168.1.100");
+        when(request.getHeader("Authorization")).thenReturn("");
+        when(request.isUserInRole("METRICS_READER")).thenReturn(false);
+        
+        servlet.doGet(request, response);
+        
+        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+    }
+
+    @Test
+    void testMultipleCounterIncrements() throws ServletException {
+        servlet.init();
+        
+        double initialCount = MetricsServlet.getRequestCounter().count();
+        
+        MetricsServlet.getRequestCounter().increment();
+        MetricsServlet.getRequestCounter().increment();
+        MetricsServlet.getRequestCounter().increment();
+        
+        assertEquals(initialCount + 3, MetricsServlet.getRequestCounter().count());
+    }
+
+    @Test
+    void testAllCountersInitialized() throws ServletException {
+        servlet.init();
+        
+        assertNotNull(MetricsServlet.getRequestCounter());
+        assertNotNull(MetricsServlet.getBookAddedCounter());
+        assertNotNull(MetricsServlet.getBookUpdatedCounter());
+        assertNotNull(MetricsServlet.getBookDeletedCounter());
+        assertNotNull(MetricsServlet.getRegistry());
+        
+        assertEquals("http_requests_total", MetricsServlet.getRequestCounter().getId().getName());
+        assertEquals("books_added_total", MetricsServlet.getBookAddedCounter().getId().getName());
+        assertEquals("books_updated_total", MetricsServlet.getBookUpdatedCounter().getId().getName());
+        assertEquals("books_deleted_total", MetricsServlet.getBookDeletedCounter().getId().getName());
     }
 }
