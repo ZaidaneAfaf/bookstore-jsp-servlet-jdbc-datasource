@@ -1,5 +1,7 @@
 package org.example;
 
+import io.micrometer.core.instrument.Counter;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,9 +50,13 @@ class BookServletTest {
     @Mock
     private ResultSet resultSet;
 
+    @Mock
+    private Counter mockCounter;
+
     private BookServlet servlet;
     private StringWriter stringWriter;
     private PrintWriter writer;
+    private MockedStatic<MetricsServlet> mockedMetricsServlet;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -58,7 +64,21 @@ class BookServletTest {
         stringWriter = new StringWriter();
         writer = new PrintWriter(stringWriter);
         
+        // Mock de MetricsServlet pour éviter NullPointerException
+        mockedMetricsServlet = mockStatic(MetricsServlet.class);
+        mockedMetricsServlet.when(MetricsServlet::getRequestCounter).thenReturn(mockCounter);
+        mockedMetricsServlet.when(MetricsServlet::getBookAddedCounter).thenReturn(mockCounter);
+        mockedMetricsServlet.when(MetricsServlet::getBookUpdatedCounter).thenReturn(mockCounter);
+        mockedMetricsServlet.when(MetricsServlet::getBookDeletedCounter).thenReturn(mockCounter);
+        
         when(response.getWriter()).thenReturn(writer);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (mockedMetricsServlet != null) {
+            mockedMetricsServlet.close();
+        }
     }
 
     @Test
@@ -76,6 +96,10 @@ class BookServletTest {
             mockedFactory.when(MyDataSourceFactory::getDataSource).thenReturn(dataSource);
             servlet.init();
 
+            // Mock de la méthode HTTP
+            when(request.getMethod()).thenReturn("GET");
+            when(request.getParameter("action")).thenReturn(null);
+            
             when(dataSource.getConnection()).thenReturn(connection);
             when(connection.createStatement()).thenReturn(statement);
             when(statement.executeQuery(anyString())).thenReturn(resultSet);
@@ -90,6 +114,7 @@ class BookServletTest {
 
             verify(request).setAttribute(eq("books"), anyList());
             verify(dispatcher).forward(request, response);
+            verify(mockCounter).increment(); // Vérifier que le compteur a été incrémenté
         }
     }
 
@@ -116,6 +141,7 @@ class BookServletTest {
 
             verify(request).setAttribute(eq("book"), any(Book.class));
             verify(dispatcher).forward(request, response);
+            verify(mockCounter).increment();
         }
     }
 
@@ -139,6 +165,7 @@ class BookServletTest {
             verify(preparedStatement).setString(1, "New Book");
             verify(preparedStatement).setString(2, "New Author");
             verify(response).sendRedirect("/bookstore/books");
+            verify(mockCounter, atLeastOnce()).increment(); // Vérifie que le compteur a été incrémenté
         }
     }
 
@@ -164,6 +191,7 @@ class BookServletTest {
             verify(preparedStatement).setString(2, "Updated Author");
             verify(preparedStatement).setLong(3, 1L);
             verify(response).sendRedirect("/bookstore/books");
+            verify(mockCounter, atLeastOnce()).increment();
         }
     }
 
@@ -185,6 +213,7 @@ class BookServletTest {
 
             verify(preparedStatement).setLong(1, 1L);
             verify(response).sendRedirect("/bookstore/books");
+            verify(mockCounter, atLeastOnce()).increment();
         }
     }
 
@@ -195,6 +224,7 @@ class BookServletTest {
             servlet.init();
 
             when(request.getMethod()).thenReturn("GET");
+            when(request.getParameter("action")).thenReturn(null);
             when(dataSource.getConnection()).thenThrow(new SQLException("DB Error"));
 
             assertThrows(ServletException.class, () -> {
@@ -238,6 +268,7 @@ class BookServletTest {
             servlet.service(request, response);
 
             verify(dispatcher).forward(request, response);
+            verify(mockCounter).increment();
         }
     }
 }
