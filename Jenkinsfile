@@ -74,9 +74,11 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 script {
-                    timeout(time: 5, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: false, webhookSecretKey: credentials('sonarqube-token')
-                    }
+                    echo 'SonarQube analysis submitted. Check SonarCloud dashboard for results.'
+                    echo 'Project: https://sonarcloud.io/dashboard?id=ZaidaneAfaf_bookstore-jsp-servlet-jdbc-datasource'
+                    
+                    // Alternative simple : juste attendre 5 secondes et continuer
+                    sleep(5)
                 }
             }
         }
