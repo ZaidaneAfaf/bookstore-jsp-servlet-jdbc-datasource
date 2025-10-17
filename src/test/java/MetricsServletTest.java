@@ -25,16 +25,10 @@ class MetricsServletTest {
     private HttpServletResponse response;
 
     private MetricsServlet servlet;
-    private StringWriter stringWriter;
-    private PrintWriter writer;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         servlet = new MetricsServlet();
-        stringWriter = new StringWriter();
-        writer = new PrintWriter(stringWriter);
-        
-        when(response.getWriter()).thenReturn(writer);
     }
 
     @Test
@@ -50,6 +44,11 @@ class MetricsServletTest {
     @Test
     void testDoGet() throws Exception {
         servlet.init();
+        
+        // Stubbing déplacé uniquement ici où il est nécessaire
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(writer);
         when(request.getMethod()).thenReturn("GET");
         
         servlet.service(request, response);

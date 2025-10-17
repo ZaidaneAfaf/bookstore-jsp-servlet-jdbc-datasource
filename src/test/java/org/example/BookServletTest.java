@@ -14,7 +14,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.*;
@@ -54,15 +53,11 @@ class BookServletTest {
     private Counter mockCounter;
 
     private BookServlet servlet;
-    private StringWriter stringWriter;
-    private PrintWriter writer;
     private MockedStatic<MetricsServlet> mockedMetricsServlet;
 
     @BeforeEach
     void setUp() throws Exception {
         servlet = new BookServlet();
-        stringWriter = new StringWriter();
-        writer = new PrintWriter(stringWriter);
         
         // Mock de MetricsServlet pour éviter NullPointerException
         mockedMetricsServlet = mockStatic(MetricsServlet.class);
@@ -70,8 +65,6 @@ class BookServletTest {
         mockedMetricsServlet.when(MetricsServlet::getBookAddedCounter).thenReturn(mockCounter);
         mockedMetricsServlet.when(MetricsServlet::getBookUpdatedCounter).thenReturn(mockCounter);
         mockedMetricsServlet.when(MetricsServlet::getBookDeletedCounter).thenReturn(mockCounter);
-        
-        when(response.getWriter()).thenReturn(writer);
     }
 
     @AfterEach
@@ -96,10 +89,8 @@ class BookServletTest {
             mockedFactory.when(MyDataSourceFactory::getDataSource).thenReturn(dataSource);
             servlet.init();
 
-            // Mock de la méthode HTTP
             when(request.getMethod()).thenReturn("GET");
             when(request.getParameter("action")).thenReturn(null);
-            
             when(dataSource.getConnection()).thenReturn(connection);
             when(connection.createStatement()).thenReturn(statement);
             when(statement.executeQuery(anyString())).thenReturn(resultSet);
@@ -114,7 +105,7 @@ class BookServletTest {
 
             verify(request).setAttribute(eq("books"), anyList());
             verify(dispatcher).forward(request, response);
-            verify(mockCounter).increment(); // Vérifier que le compteur a été incrémenté
+            verify(mockCounter).increment();
         }
     }
 
@@ -165,7 +156,7 @@ class BookServletTest {
             verify(preparedStatement).setString(1, "New Book");
             verify(preparedStatement).setString(2, "New Author");
             verify(response).sendRedirect("/bookstore/books");
-            verify(mockCounter, atLeastOnce()).increment(); // Vérifie que le compteur a été incrémenté
+            verify(mockCounter, atLeastOnce()).increment();
         }
     }
 
