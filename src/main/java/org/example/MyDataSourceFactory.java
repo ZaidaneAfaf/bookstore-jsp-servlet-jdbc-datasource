@@ -19,22 +19,7 @@ public class MyDataSourceFactory {
     }
     
     public static DataSource getDataSource() {
-        Properties prop = new Properties();
-        
-        try (InputStream input = MyDataSourceFactory.class.getClassLoader()
-                .getResourceAsStream("db.properties")) {
-            
-            if (input == null) {
-                LOGGER.severe("Unable to find db.properties file");
-                throw new IllegalStateException("Database configuration file not found");
-            }
-            
-            prop.load(input);
-            
-        } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to load database configuration", ex);
-            throw new IllegalStateException("Failed to load database configuration", ex);
-        }
+        Properties prop = loadDatabaseProperties();
         
         // Validation des propriétés obligatoires
         validateProperty(prop, "db.driver");
@@ -51,6 +36,31 @@ public class MyDataSourceFactory {
         dataSource.setMaxTotal(10); // Maximum number of connections
         
         return dataSource;
+    }
+    
+    /**
+     * Charge les propriétés de configuration de la base de données
+     * @return Properties chargées depuis db.properties
+     * @throws IllegalStateException si le fichier n'existe pas ou ne peut pas être chargé
+     */
+    private static Properties loadDatabaseProperties() {
+        Properties prop = new Properties();
+        
+        try (InputStream input = MyDataSourceFactory.class.getClassLoader()
+                .getResourceAsStream("db.properties")) {
+            
+            if (input == null) {
+                LOGGER.severe("Unable to find db.properties file");
+                throw new IllegalStateException("Database configuration file not found");
+            }
+            
+            prop.load(input);
+            return prop;
+            
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to load database configuration", ex);
+            throw new IllegalStateException("Failed to load database configuration", ex);
+        }
     }
     
     /**
