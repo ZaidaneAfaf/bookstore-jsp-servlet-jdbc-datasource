@@ -3,6 +3,9 @@ package org.example;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 
@@ -12,20 +15,20 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 public class MetricsServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Logger.getLogger(MetricsServlet.class.getName());
     
-    // Utilisation d'un AtomicBoolean pour l'initialisation thread-safe
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
-    
     private static PrometheusMeterRegistry prometheusRegistry;
     private static Counter requestCounter;
     private static Counter bookAddedCounter;
     private static Counter bookUpdatedCounter;
     private static Counter bookDeletedCounter;
+    private static final AtomicInteger activeThreads = new AtomicInteger();
     
     public static Counter getRequestCounter() {
         checkInitialization();
@@ -69,6 +72,7 @@ public class MetricsServlet extends HttpServlet {
             prometheusRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         }
         
+        // Initialisation des counters
         requestCounter = Counter.builder("http_requests_total")
             .description("Total HTTP requests")
             .tag("application", "bookstore")
@@ -88,21 +92,11 @@ public class MetricsServlet extends HttpServlet {
             .description("Total books deleted")
             .tag("application", "bookstore")
             .register(prometheusRegistry);
-            
-        // Gauge pour la mémoire JVM
-        Gauge.builder("jvm_memory_used_bytes", Runtime.getRuntime(),
-            runtime -> runtime.totalMemory() - runtime.freeMemory())
-            .description("JVM memory used in bytes")
-            .baseUnit("bytes")
-            .tag("application", "bookstore")
-            .register(prometheusRegistry);
-            
-        // Gauge pour les threads actifs
-        Gauge.builder("jvm_threads_live")
-            .description("Current number of live threads")
-            .baseUnit("threads")
-            .tag("application", "bookstore")
-            .register(prometheusRegistry, Thread.activeCount());
+        
+        // Utilisation des binders standard pour les métriques JVM
+        new JvmMemoryMetrics().bindTo(prometheusRegistry);
+        new JvmThreadMetrics().bindTo(prometheusRegistry);
+        new ProcessorMetrics().bindTo(prometheusRegistry);
     }
         
     public static MeterRegistry getRegistry() {
@@ -113,7 +107,6 @@ public class MetricsServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Validation du type de contenu
         response.setContentType("text/plain;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         
