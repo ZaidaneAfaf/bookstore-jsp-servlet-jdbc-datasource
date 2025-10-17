@@ -85,9 +85,7 @@ public class BookServlet extends HttpServlet {
                 books.add(book);
             }
         } catch (SQLException e) {
-            String errorMsg = "Database error while listing books: " + e.getMessage();
-            LOGGER.log(Level.SEVERE, errorMsg, e);
-            throw new ServletException(errorMsg, e);
+            handleDatabaseError("listing books", e);
         }
         request.setAttribute("books", books);
         request.getRequestDispatcher("/index.jsp").forward(request, response);
@@ -112,9 +110,7 @@ public class BookServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            String errorMsg = "Database error while retrieving book with id: " + id;
-            LOGGER.log(Level.SEVERE, errorMsg, e);
-            throw new ServletException(errorMsg, e);
+            handleDatabaseError("retrieving book with id: " + id, e);
         }
         
         request.setAttribute("book", book);
@@ -136,9 +132,7 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookAddedCounter().increment();
         } catch (SQLException e) {
-            String errorMsg = "Database error while adding book: " + title;
-            LOGGER.log(Level.SEVERE, errorMsg, e);
-            throw new ServletException(errorMsg, e);
+            handleDatabaseError("adding book: " + title, e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
@@ -160,9 +154,7 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookUpdatedCounter().increment();
         } catch (SQLException e) {
-            String errorMsg = "Database error while updating book with id: " + id;
-            LOGGER.log(Level.SEVERE, errorMsg, e);
-            throw new ServletException(errorMsg, e);
+            handleDatabaseError("updating book with id: " + id, e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
     }
@@ -180,10 +172,14 @@ public class BookServlet extends HttpServlet {
             
             MetricsServlet.getBookDeletedCounter().increment();
         } catch (SQLException e) {
-            String errorMsg = "Database error while deleting book with id: " + id;
-            LOGGER.log(Level.SEVERE, errorMsg, e);
-            throw new ServletException(errorMsg, e);
+            handleDatabaseError("deleting book with id: " + id, e);
         }
         response.sendRedirect(request.getContextPath() + BOOKS_PATH);
+    }
+    
+    private void handleDatabaseError(String operation, SQLException e) throws ServletException {
+        String errorMsg = "Database error while " + operation;
+        LOGGER.log(Level.SEVERE, errorMsg, e);
+        throw new ServletException(errorMsg, e);
     }
 }
