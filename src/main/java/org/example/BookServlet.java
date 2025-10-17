@@ -33,12 +33,18 @@ public class BookServlet extends HttpServlet {
             throws ServletException, IOException {
         MetricsServlet.getRequestCounter().increment();
         
-        String action = request.getParameter("action");
-        
-        if (action != null && action.equals("edit")) {
-            showEditForm(request, response);
-        } else {
-            listBooks(request, response);
+        try {
+            String action = request.getParameter("action");
+            
+            if (action != null && action.equals("edit")) {
+                showEditForm(request, response);
+            } else {
+                listBooks(request, response);
+            }
+        } catch (ServletException | IOException e) {
+            LOGGER.log(Level.SEVERE, "Error processing GET request", e);
+            handleError(response, "An error occurred while processing your request");
+            throw e;
         }
     }
 
@@ -47,25 +53,31 @@ public class BookServlet extends HttpServlet {
             throws ServletException, IOException {
         MetricsServlet.getRequestCounter().increment();
         
-        String action = request.getParameter("action");
-        
-        if (action != null) {
-            switch (action) {
-                case "add":
-                    addBook(request, response);
-                    break;
-                case "update":
-                    updateBook(request, response);
-                    break;
-                case "delete":
-                    deleteBook(request, response);
-                    break;
-                default:
-                    listBooks(request, response);
-                    break;
+        try {
+            String action = request.getParameter("action");
+            
+            if (action != null) {
+                switch (action) {
+                    case "add":
+                        addBook(request, response);
+                        break;
+                    case "update":
+                        updateBook(request, response);
+                        break;
+                    case "delete":
+                        deleteBook(request, response);
+                        break;
+                    default:
+                        listBooks(request, response);
+                        break;
+                }
+            } else {
+                listBooks(request, response);
             }
-        } else {
-            listBooks(request, response);
+        } catch (ServletException | IOException e) {
+            LOGGER.log(Level.SEVERE, "Error processing POST request", e);
+            handleError(response, "An error occurred while processing your request");
+            throw e;
         }
     }
 
@@ -181,5 +193,15 @@ public class BookServlet extends HttpServlet {
         String errorMsg = "Database error while " + operation;
         LOGGER.log(Level.SEVERE, errorMsg, e);
         throw new ServletException(errorMsg, e);
+    }
+    
+    /**
+     * Gère les erreurs en renvoyant un message générique à l'utilisateur
+     * sans exposer de détails techniques sensibles
+     */
+    private void handleError(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        response.setContentType("text/html; charset=UTF-8");
+        response.getWriter().write("<html><body><h1>Error</h1><p>" + message + "</p></body></html>");
     }
 }

@@ -42,14 +42,15 @@ class MetricsServletTest {
     }
 
     @Test
-    void testDoGet() throws Exception {
+    void testDoGetFromLocalhost() throws Exception {
         servlet.init();
         
-        // Stubbing déplacé uniquement ici où il est nécessaire
         StringWriter stringWriter = new StringWriter();
         PrintWriter writer = new PrintWriter(stringWriter);
         when(response.getWriter()).thenReturn(writer);
         when(request.getMethod()).thenReturn("GET");
+        // Simuler une requête depuis localhost
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
         
         servlet.service(request, response);
         
@@ -58,7 +59,22 @@ class MetricsServletTest {
         
         String output = stringWriter.toString();
         assertNotNull(output);
-        assertTrue(output.contains("http_requests_total") || output.length() > 0);
+        assertTrue(!output.isEmpty());
+    }
+
+    @Test
+    void testDoGetUnauthorized() throws Exception {
+        servlet.init();
+        
+        when(request.getMethod()).thenReturn("GET");
+        // Simuler une requête depuis une adresse non autorisée
+        when(request.getRemoteAddr()).thenReturn("192.168.1.100");
+        when(request.getHeader("Authorization")).thenReturn(null);
+        when(request.isUserInRole("METRICS_READER")).thenReturn(false);
+        
+        servlet.service(request, response);
+        
+        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
     }
 
     @Test

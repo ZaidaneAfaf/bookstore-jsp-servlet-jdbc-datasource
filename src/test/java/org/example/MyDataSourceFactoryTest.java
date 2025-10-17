@@ -1,4 +1,5 @@
 package org.example;
+
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
@@ -26,7 +27,9 @@ class MyDataSourceFactoryTest {
             assertEquals(5, basicDataSource.getInitialSize());
             assertEquals(10, basicDataSource.getMaxTotal());
             assertNotNull(basicDataSource.getUrl());
-            assertNotNull(basicDataSource.getUsername());
+            // Utiliser getUsername() sans vérification car c'est juste un test
+            String username = basicDataSource.getUsername();
+            assertNotNull(username);
         }
     }
 
