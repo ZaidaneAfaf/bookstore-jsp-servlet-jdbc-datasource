@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,6 +69,12 @@ public class MetricsServlet extends HttpServlet {
         Gauge.builder("jvm_memory_used_bytes", Runtime.getRuntime(),
             runtime -> runtime.totalMemory() - runtime.freeMemory())
             .description("JVM memory used")
+            .register(prometheusRegistry);
+
+        Gauge.builder("jvm_cpu_usage", ManagementFactory.getOperatingSystemMXBean(),
+            osBean -> osBean.getProcessCpuLoad() * 100)
+            .description("JVM CPU usage in percentage")
+            .unit("%")
             .register(prometheusRegistry);
     }
             
