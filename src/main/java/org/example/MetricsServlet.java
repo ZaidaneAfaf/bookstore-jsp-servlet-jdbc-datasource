@@ -11,8 +11,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -70,21 +68,6 @@ public class MetricsServlet extends HttpServlet {
         Gauge.builder("jvm_memory_used_bytes", Runtime.getRuntime(),
             runtime -> runtime.totalMemory() - runtime.freeMemory())
             .description("JVM memory used")
-            .register(prometheusRegistry);
-
-        // Métrique CPU corrigée - Utilisation CPU du processus
-        Gauge.builder("jvm_cpu_usage", 
-            () -> {
-                OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-                if (osBean instanceof com.sun.management.OperatingSystemMXBean) {
-                    com.sun.management.OperatingSystemMXBean sunOsBean = 
-                        (com.sun.management.OperatingSystemMXBean) osBean;
-                    // Retourne le pourcentage d'utilisation CPU (0.0 à 1.0)
-                    return sunOsBean.getProcessCpuLoad();
-                }
-                return 0.0;
-            })
-            .description("JVM CPU usage percentage")
             .register(prometheusRegistry);
     }
             
