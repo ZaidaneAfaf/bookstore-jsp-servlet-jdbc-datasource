@@ -72,9 +72,8 @@ public class MetricsServlet extends HttpServlet {
             .register(prometheusRegistry);
 
         Gauge.builder("jvm_cpu_usage", ManagementFactory.getOperatingSystemMXBean(),
-            osBean -> osBean.getProcessCpuLoad() * 100)
-            .description("JVM CPU usage in percentage")
-            .unit("%")
+            osBean -> osBean.getSystemCpuLoad() * 100)
+            .description("System CPU usage in percentage")
             .register(prometheusRegistry);
     }
             
